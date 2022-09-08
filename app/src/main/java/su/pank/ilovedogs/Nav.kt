@@ -23,14 +23,14 @@ import androidx.navigation.compose.rememberNavController
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Navigation(navController: NavHostController = rememberNavController()){
-    val screens = listOf("dogs", "likes")
+    val screens = listOf("Dogs", "Likes")
 
     Scaffold(bottomBar = { NavigationBar(){
         val navBackStackEntry by navController.currentBackStackEntryAsState()
         val currentDestination = navBackStackEntry?.destination
         screens.forEach{ screen ->
             NavigationBarItem(
-                icon = { if (screen == "dogs")
+                icon = { if (screen == "Dogs")
                     Icon(painter = painterResource(id = R.drawable.pets), contentDescription = null)
                        else 
                        Icon(Icons.Default.Favorite, null)},
@@ -43,7 +43,7 @@ fun Navigation(navController: NavHostController = rememberNavController()){
         }
     }
     ){padding -> NavHost(navController = navController, startDestination = screens[0], modifier = Modifier.padding(padding)){
-        composable(screens[0]){ Text(screens[0]) }
+        composable(screens[0]){ Dogs() }
         composable(screens[1]) { Text(screens[1]) }
     }}
 }
