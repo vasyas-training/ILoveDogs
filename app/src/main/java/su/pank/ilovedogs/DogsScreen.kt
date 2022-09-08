@@ -95,7 +95,14 @@ fun Dogs(
                     .padding(10.dp)
                     .clickable {
                         if (breed.subBreeds == null)
-                            TODO()
+                            navController.navigate("view/" + JSONArray().apply {
+                                if (breedParent == "")
+                                    this.put(breed.name)
+                                else {
+                                    this.put(breedParent)
+                                    this.put(breed.name)
+                                }
+                            })
                         else {
                             navController.navigate(
                                 "subBreeds/" + JSONObject()

@@ -9,7 +9,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.capitalize
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -18,6 +17,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import org.json.JSONArray
 import org.json.JSONObject
 import java.util.*
 
@@ -83,15 +83,28 @@ fun Navigation(navController: NavHostController = rememberNavController()) {
             composable(
                 "subBreeds/{subBreeds}",
                 arguments = listOf(navArgument("subBreeds") { type = NavType.StringType })
-            ) {
-
-                    navBackStackEntry ->
+            ) { navBackStackEntry ->
+                val obj = JSONObject(navBackStackEntry.arguments?.getString("subBreeds")!!)
                 Dogs(
                     navController = navController,
-                    JSONObject(navBackStackEntry.arguments?.getString("subBreeds")!!).getJSONArray("subBreeds"),
-                    JSONObject(navBackStackEntry.arguments?.getString("subBreeds")!!).getString("parent")
+                    obj.getJSONArray("subBreeds"),
+                    obj.getString("parent")
                 )
-                screenNow = JSONObject(navBackStackEntry.arguments?.getString("subBreeds")!!).getString("parent")
+                screenNow = obj.getString("parent")
+
+            }
+            composable(
+                "view/{data}",
+                arguments = listOf(navArgument("data") { type = NavType.StringType })
+            ) { navBackStackEntry ->
+                val jsonArray = JSONArray(navBackStackEntry.arguments?.getString("data")!!)
+                screenNow = jsonArray.getString(0)
+                if (jsonArray.length() == 1)
+                    ImageViewer(breed = jsonArray.getString(0))
+                else {
+                    ImageViewer(breed = jsonArray.getString(0), subBreed = jsonArray.getString(1))
+                    screenNow += " " + jsonArray.getString(1)
+                }
 
             }
         }

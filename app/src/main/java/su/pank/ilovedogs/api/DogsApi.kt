@@ -1,6 +1,8 @@
 package su.pank.ilovedogs.api
 
 
+import com.skydoves.whatif.whatIf
+import com.skydoves.whatif.whatIfNotNull
 import okhttp3.ResponseBody
 import org.json.JSONObject
 import retrofit2.Response
@@ -11,6 +13,7 @@ import su.pank.ilovedogs.models.Breed
 import su.pank.ilovedogs.models.Dog
 
 val retrofit = Retrofit.Builder().baseUrl("https://dog.ceo/api/").build()
+val dogsApi = retrofit.create(DogsApi::class.java)
 
 // Отказываюсь от fuel из-за его проблем со стабильностью и контекста
 interface DogsApi {
@@ -22,11 +25,17 @@ interface DogsApi {
 
     @GET("breed/{breed}/{subBreed}/images/random")
     suspend fun getRandomBySubBreed(@Path("breed") breedName: String, @Path("subBreed") subBreedName: String): Response<ResponseBody>
+
+    @GET("breed/{breed}/{subBreed}/images")
+    suspend fun getImagesBySubBreed(@Path("breed") breedName: String, @Path("subBreed") subBreedName: String): Response<ResponseBody>
+
+    @GET("breed/{breed}/images/")
+    suspend fun getImagesByBreed(@Path("breed") breedName: String): Response<ResponseBody>
 }
 
 suspend fun getBreeds(): MutableList<Breed> {
     val breeds = mutableListOf<Breed>()
-    val response = retrofit.create(DogsApi::class.java).getBreeds()
+    val response = dogsApi.getBreeds()
     if (response.code() != 200)
         throw Exception()
     val result = response.body()?.string()!!
@@ -46,12 +55,19 @@ suspend fun getBreeds(): MutableList<Breed> {
     return breeds
 }
 
-fun getDogs(breed: Breed): List<Dog> {
-    TODO()
+suspend fun getDogImages(dog: Dog): MutableList<String> {
+    val response = if (dog.subBreed != null) dogsApi.getImagesBySubBreed(dog.breed, dog.subBreed) else dogsApi.getImagesByBreed(dog.breed)
+    if (response.code() != 200)
+        throw Exception()
+    val images = mutableListOf<String>()
+    val jsonArray = JSONObject(response.body()?.string()!!).getJSONArray("message")
+    for (i in 0 until jsonArray.length())
+        images.add(jsonArray.getString(i))
+    return images
 }
 
 suspend fun getRandomByBreed(breedName: String): String{
-    val response = retrofit.create(DogsApi::class.java).getRandomByBreed(breedName)
+    val response = dogsApi.getRandomByBreed(breedName)
     if (response.code() != 200)
         throw Exception()
     return JSONObject(response.body()!!.string()).getString("message")
@@ -62,8 +78,9 @@ suspend fun getRandomByBreed(breed: Breed): String{
 }
 
 suspend fun getRandomBySubBreed(breedName: String, subBreedName: String): String{
-    val response = retrofit.create(DogsApi::class.java).getRandomBySubBreed(breedName, subBreedName)
+    val response = dogsApi.getRandomBySubBreed(breedName, subBreedName)
     if (response.code() != 200)
         throw Exception()
     return JSONObject(response.body()!!.string()).getString("message")
 }
+
