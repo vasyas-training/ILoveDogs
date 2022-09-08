@@ -19,9 +19,12 @@ interface DogsApi {
 
     @GET("breed/{breed}/images/random")
     suspend fun getRandomByBreed(@Path("breed") breedName: String): Response<ResponseBody>
+
+    @GET("breed/{breed}/{subBreed}/images/random")
+    suspend fun getRandomBySubBreed(@Path("breed") breedName: String, @Path("subBreed") subBreedName: String): Response<ResponseBody>
 }
 
-suspend fun getBreeds(): List<Breed> {
+suspend fun getBreeds(): MutableList<Breed> {
     val breeds = mutableListOf<Breed>()
     val response = retrofit.create(DogsApi::class.java).getBreeds()
     if (response.code() != 200)
@@ -36,7 +39,7 @@ suspend fun getBreeds(): List<Breed> {
             for (i in 0 until subBreedJSONArray.length()) {
                 subBreeds.add(Breed(subBreedJSONArray.getString(i)))
             }
-            breed.subBreed = subBreeds
+            breed.subBreeds = subBreeds
         }
         breeds.add(breed)
     }
@@ -56,4 +59,11 @@ suspend fun getRandomByBreed(breedName: String): String{
 
 suspend fun getRandomByBreed(breed: Breed): String{
     return getRandomByBreed(breed.name)
+}
+
+suspend fun getRandomBySubBreed(breedName: String, subBreedName: String): String{
+    val response = retrofit.create(DogsApi::class.java).getRandomBySubBreed(breedName, subBreedName)
+    if (response.code() != 200)
+        throw Exception()
+    return JSONObject(response.body()!!.string()).getString("message")
 }

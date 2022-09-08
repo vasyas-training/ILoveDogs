@@ -2,6 +2,7 @@ package su.pank.ilovedogs
 
 import android.annotation.SuppressLint
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -18,6 +19,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.google.accompanist.placeholder.PlaceholderHighlight
 import com.google.accompanist.placeholder.material.shimmer
@@ -25,19 +27,33 @@ import com.google.accompanist.placeholder.placeholder
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.json.JSONArray
+import org.json.JSONObject
 import su.pank.ilovedogs.api.getBreeds
 import su.pank.ilovedogs.api.getRandomByBreed
+import su.pank.ilovedogs.api.getRandomBySubBreed
 import su.pank.ilovedogs.models.Breed
 import java.util.*
 
+// Я пёс
 val MY_VK_LOGO =
     "https://sun9-83.userapi.com/impg/ARDUrlmffYmGH0mkzkxZG6CEmitTGy6wskVstQ/4FRA5X2JLq4.jpg?size=960x1280&quality=95&sign=c139b9f7c65048eff8b8dcd84904145d&type=album"
 
 @SuppressLint("MutableCollectionMutableState", "CoroutineCreationDuringComposition")
 @Composable
-fun Dogs() {
+fun Dogs(
+    navController: NavController,
+    breedsJSON: JSONArray = JSONArray(),
+    breedParent: String = ""
+) {
+    var breedsNormal = mutableListOf<Breed>()
+    if (breedsJSON.length() > 0) {
+        for (i in 0 until breedsJSON.length())
+            breedsNormal.add(Breed(breedsJSON.getString(i)))
+    }
+
     var breeds by remember {
-        mutableStateOf(mutableListOf<Breed>())
+        mutableStateOf(breedsNormal)
     }
 
     if (breeds.isEmpty())
@@ -52,27 +68,52 @@ fun Dogs() {
 
     LazyColumn {
 
-        try {
+        if (breeds.isEmpty()) {
+            try {
+                CoroutineScope(Dispatchers.IO).launch {
+                    breeds = getBreeds()
 
-            CoroutineScope(Dispatchers.IO).launch {
-                breeds = getBreeds().toMutableList()
+                }
 
+            } catch (e: Exception) {
+                DogsAppContext.isError = true
             }
-
-        } catch (e: Exception) {
-            DogsAppContext.isError = true
         }
         items(breeds) { breed ->
             var logoUrl by remember {
                 mutableStateOf(MY_VK_LOGO)
             }
             CoroutineScope(Dispatchers.IO).launch {
-                logoUrl = getRandomByBreed(breed)
+                logoUrl =
+                    if (breedParent.isNotEmpty()) getRandomBySubBreed(breedParent, breed.name) else getRandomByBreed(
+                        breed
+                    )
             }
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(10.dp)
+                    .clickable {
+                        if (breed.subBreeds == null)
+                            TODO()
+                        else {
+                            navController.navigate(
+                                "subBreeds/" + JSONObject()
+                                    .apply {
+                                        this.put("parent", breed.name)
+                                        this.put(
+                                            "subBreeds",
+                                            JSONArray(
+                                                breed
+                                                    .subBreedsToArray()
+                                                    .toTypedArray()
+                                            )
+                                        )
+                                    }
+                                    .toString()
+                            )
+                        }
+                    }
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Image(
@@ -80,7 +121,8 @@ fun Dogs() {
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
-                            .size(100.dp).clip(RoundedCornerShape(12.dp))
+                            .size(100.dp)
+                            .clip(RoundedCornerShape(12.dp))
                             .placeholder(
                                 visible = logoUrl == MY_VK_LOGO,
                                 highlight = PlaceholderHighlight.shimmer(),
@@ -92,8 +134,8 @@ fun Dogs() {
                         fontSize = 20.sp,
                         modifier = Modifier.padding(10.dp)
                     )
-                    if (breed.subBreed != null)
-                        Text(text = " (${breed.subBreed!!.size} subbreeds)", fontSize = 16.sp)
+                    if (breed.subBreeds != null)
+                        Text(text = " (${breed.subBreeds!!.size} subbreeds)", fontSize = 16.sp)
 
                 }
 
