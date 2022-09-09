@@ -42,29 +42,30 @@ fun Navigation(navController: NavHostController = rememberNavController()) {
                 }
         })
     }, bottomBar = {
-        NavigationBar {
-            val navBackStackEntry by navController.currentBackStackEntryAsState()
-            val currentDestination = navBackStackEntry?.destination
-            screens.forEach { screen ->
-                NavigationBarItem(
-                    icon = {
-                        if (screen == "Dogs")
-                            Icon(
-                                painter = painterResource(id = R.drawable.pets),
-                                contentDescription = null
-                            )
-                        else
-                            Icon(Icons.Default.Favorite, null)
-                    },
-                    label = { Text(screen) },
-                    selected = currentDestination?.hierarchy?.any {
-                        screen in (it.route ?: "")
-                    } == true,
-                    onClick = { navController.navigate(screen) }
-                )
-            }
+        if (screenNow in screens)
+            NavigationBar {
+                val navBackStackEntry by navController.currentBackStackEntryAsState()
+                val currentDestination = navBackStackEntry?.destination
+                screens.forEach { screen ->
+                    NavigationBarItem(
+                        icon = {
+                            if (screen == "Dogs")
+                                Icon(
+                                    painter = painterResource(id = R.drawable.pets),
+                                    contentDescription = null
+                                )
+                            else
+                                Icon(Icons.Default.Favorite, null)
+                        },
+                        label = { Text(screen) },
+                        selected = currentDestination?.hierarchy?.any {
+                            screen in (it.route ?: "")
+                        } == true,
+                        onClick = { navController.navigate(screen) }
+                    )
+                }
 
-        }
+            }
     }
     ) { padding ->
         NavHost(

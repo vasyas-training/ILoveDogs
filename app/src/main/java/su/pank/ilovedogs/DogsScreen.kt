@@ -20,6 +20,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import coil.compose.AsyncImagePainter
 import coil.compose.rememberAsyncImagePainter
 import com.google.accompanist.placeholder.PlaceholderHighlight
 import com.google.accompanist.placeholder.material.shimmer
@@ -63,7 +64,11 @@ fun Dogs(
             verticalArrangement = Arrangement.Center
         ) {
             CircularProgressIndicator()
-            Text("Информация загружается, пожалуйста подождите", textAlign = TextAlign.Center)
+            Text(
+                "Информация загружается,\n пожалуйста подождите...",
+                textAlign = TextAlign.Center,
+                softWrap = true
+            )
         }
 
     LazyColumn {
@@ -72,81 +77,86 @@ fun Dogs(
             try {
                 CoroutineScope(Dispatchers.IO).launch {
                     breeds = getBreeds()
-
                 }
 
             } catch (e: Exception) {
                 DogsAppContext.isError = true
             }
-        }
-        items(breeds) { breed ->
-            var logoUrl by remember {
-                mutableStateOf(MY_VK_LOGO)
-            }
-            CoroutineScope(Dispatchers.IO).launch {
-                logoUrl =
-                    if (breedParent.isNotEmpty()) getRandomBySubBreed(breedParent, breed.name) else getRandomByBreed(
-                        breed
-                    )
-            }
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(10.dp)
-                    .clickable {
-                        if (breed.subBreeds == null)
-                            navController.navigate("view/" + JSONArray().apply {
-                                if (breedParent == "")
-                                    this.put(breed.name)
-                                else {
-                                    this.put(breedParent)
-                                    this.put(breed.name)
-                                }
-                            })
-                        else {
-                            navController.navigate(
-                                "subBreeds/" + JSONObject()
-                                    .apply {
-                                        this.put("parent", breed.name)
-                                        this.put(
-                                            "subBreeds",
-                                            JSONArray(
-                                                breed
-                                                    .subBreedsToArray()
-                                                    .toTypedArray()
-                                            )
-                                        )
+        } else {
+            items(breeds) { breed ->
+                var logoUrl by remember {
+                    mutableStateOf(MY_VK_LOGO)
+                }
+                CoroutineScope(Dispatchers.IO).launch {
+                    logoUrl =
+                        if (breedParent.isNotEmpty()) getRandomBySubBreed(
+                            breedParent,
+                            breed.name
+                        ) else getRandomByBreed(
+                            breed
+                        )
+                }
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(10.dp)
+                        .clickable {
+                            if (breed.subBreeds == null)
+                                navController.navigate("view/" + JSONArray().apply {
+                                    if (breedParent == "")
+                                        this.put(breed.name)
+                                    else {
+                                        this.put(breedParent)
+                                        this.put(breed.name)
                                     }
-                                    .toString()
-                            )
+                                })
+                            else {
+                                navController.navigate(
+                                    "subBreeds/" + JSONObject()
+                                        .apply {
+                                            this.put("parent", breed.name)
+                                            this.put(
+                                                "subBreeds",
+                                                JSONArray(
+                                                    breed
+                                                        .subBreedsToArray()
+                                                        .toTypedArray()
+                                                )
+                                            )
+                                        }
+                                        .toString()
+                                )
+                            }
                         }
+                ) {
+                    val asyncImagePainter = rememberAsyncImagePainter(logoUrl)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Image(
+                            painter = asyncImagePainter,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(100.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .placeholder(
+                                    visible = logoUrl == MY_VK_LOGO || asyncImagePainter.state is AsyncImagePainter.State.Loading,
+                                    highlight = PlaceholderHighlight.shimmer(),
+                                    color = Color.Gray
+                                )
+                        )
+                        Text(
+                            text = breed.name.capitalize(Locale.ROOT),
+                            fontSize = 20.sp,
+                            modifier = Modifier.padding(10.dp)
+                        )
+                        if (breed.subBreeds != null)
+                            Text(text = " (${breed.subBreeds!!.size} subbreeds)", fontSize = 16.sp)
+
                     }
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Image(
-                        painter = rememberAsyncImagePainter(logoUrl),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .size(100.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .placeholder(
-                                visible = logoUrl == MY_VK_LOGO,
-                                highlight = PlaceholderHighlight.shimmer(),
-                                color = Color.Gray
-                            )
-                    )
-                    Text(
-                        text = breed.name.capitalize(Locale.ROOT),
-                        fontSize = 20.sp,
-                        modifier = Modifier.padding(10.dp)
-                    )
-                    if (breed.subBreeds != null)
-                        Text(text = " (${breed.subBreeds!!.size} subbreeds)", fontSize = 16.sp)
 
                 }
-
             }
         }
+
     }
 }

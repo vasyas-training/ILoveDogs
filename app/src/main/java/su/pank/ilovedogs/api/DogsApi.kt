@@ -1,8 +1,7 @@
 package su.pank.ilovedogs.api
 
 
-import com.skydoves.whatif.whatIf
-import com.skydoves.whatif.whatIfNotNull
+
 import okhttp3.ResponseBody
 import org.json.JSONObject
 import retrofit2.Response
