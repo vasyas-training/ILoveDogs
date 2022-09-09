@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.FloatingActionButton
 import androidx.compose.material.Icon
 import androidx.compose.material.Scaffold
+import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
@@ -34,6 +35,7 @@ import su.pank.ilovedogs.models.Dog
 import su.pank.ilovedogs.ui.theme.ILoveDogsTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.platform.LocalContext
+import com.google.accompanist.pager.HorizontalPagerIndicator
 import com.google.gson.Gson
 import su.pank.ilovedogs.models.LikedDog
 
@@ -44,112 +46,119 @@ import su.pank.ilovedogs.models.LikedDog
     "UnusedMaterialScaffoldPaddingParameter"
 )
 @Composable
-fun ImageViewer(breed: String, subBreed: String? = null) {
-    println("$breed $subBreed")
+fun ImageViewerByBreed(breed: String, subBreed: String? = null) {
     var images by remember {
         mutableStateOf(mutableListOf<String>())
     }
-    var isLiked by remember {
-        mutableStateOf(false)
-    }
+
     val dog = Dog(breed, images, subBreed)
     CoroutineScope(Dispatchers.IO).launch {
         images = getDogImages(dog)
     }
+
+    if (images.isNotEmpty()) {
+        ImageViewer(images = images, fullBreedName = breed + " " + (subBreed ?: ""))
+    }
+
+}
+
+@OptIn(ExperimentalPagerApi::class)
+@Composable
+fun ImageViewer(images: List<String>, fullBreedName: String) {
     val pagerState = rememberPagerState()
-
-
-    if (images.isNotEmpty())
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-            modifier = Modifier.fillMaxSize()
-        ) {
-            HorizontalPager(
-                count = dog.imageUrls.size,
-                state = pagerState,
-                modifier = Modifier.weight(1F)
-            ) {
-
-                    page ->
-
-                val painter = rememberAsyncImagePainter(dog.imageUrls[page])
-                Image(
-                    painter = painter,
-                    contentDescription = null,
-                    contentScale = ContentScale.FillWidth,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .placeholder(
-                            visible = painter.state is AsyncImagePainter.State.Loading,
-                            color = Color.Gray,
-                            highlight = PlaceholderHighlight.shimmer(
-                                Color.Gray
-                            )
+    var isLiked by remember {
+        mutableStateOf(false)
+    }
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = Modifier.fillMaxSize()
+    ) {
+        HorizontalPager(
+            count = images.size,
+            state = pagerState,
+            modifier = Modifier.weight(1F)
+        ) { page ->
+            val painter = rememberAsyncImagePainter(images[page])
+            Image(
+                painter = painter,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(500.dp)
+                    .placeholder(
+                        visible = painter.state is AsyncImagePainter.State.Loading,
+                        color = Color.Gray,
+                        highlight = PlaceholderHighlight.shimmer(
+                            Color.Gray
                         )
-                )
+                    )
+            )
+        }
+        if (images.size < 20)
+            HorizontalPagerIndicator(
+                pagerState = pagerState,
+                inactiveColor = MaterialTheme.colorScheme.primaryContainer,
+                activeColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.padding(10.dp, 0.dp, 10.dp, 20.dp)
+            )
+        else
+            Text(text = "${pagerState.currentPage + 1}/${images.size}")
+        LaunchedEffect(pagerState) {
+            snapshotFlow { pagerState.currentPage }.collect { page ->
+                DogsAppContext.imageNowShowing = images[page]
+                isLiked = LikedDog(
+                    fullBreedName,
+                    images[page]
+                ) in DogsAppContext.likes
             }
+        }
+        val context = LocalContext.current
 
-            if (images.isNotEmpty()) {
-                LaunchedEffect(pagerState) {
-                    snapshotFlow { pagerState.currentPage }.collect { page ->
-                        println(page)
-                        isLiked = LikedDog(
-                            breed + " " + (subBreed ?: ""),
-                            images[page]
-                        ) in DogsAppContext.likes
-                    }
-                }
-                val context = LocalContext.current
-
-                FloatingActionButton(
-                    onClick = {
-                        isLiked = LikedDog(
-                            breed + " " + (subBreed ?: ""),
+        FloatingActionButton(
+            onClick = {
+                isLiked = LikedDog(
+                    fullBreedName,
+                    images[pagerState.currentPage]
+                ) in DogsAppContext.likes
+                if (isLiked) {
+                    isLiked = false
+                    DogsAppContext.likes.remove(
+                        LikedDog(
+                            fullBreedName,
                             images[pagerState.currentPage]
-                        ) in DogsAppContext.likes
-                        if (isLiked) {
-                            isLiked = false
-                            DogsAppContext.likes.remove(
-                                LikedDog(
-                                    breed + " " + (subBreed ?: ""),
-                                    images[pagerState.currentPage]
-                                )
-                            )
-                        }
-                        else {
-                            isLiked = true
-                            DogsAppContext.likes.add(
-                                LikedDog(
-                                    breed + " " + (subBreed ?: ""),
-                                    images[pagerState.currentPage]
-                                )!!
-                            )
-                        }
-                        if (DogsAppContext.likes.isNotEmpty())
-                            println(DogsAppContext.likes[0])
-                        CoroutineScope(Dispatchers.IO).launch {
-                            context.openFileOutput("likes.json", Context.MODE_PRIVATE).use {
-                                it.write(
-                                    Gson().toJson(DogsAppContext.likes.toTypedArray()).toByteArray()
-                                )
-                            }
-                        }
-                    },
-                    backgroundColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier
-                        .align(Alignment.End)
-                        .padding(10.dp)
-                ) {
-                    Icon(
-                        if (isLiked) Icons.Outlined.Favorite else Icons.Outlined.FavoriteBorder,
-                        contentDescription = null
+                        )
+                    )
+                } else {
+                    isLiked = true
+                    DogsAppContext.likes.add(
+                        LikedDog(
+                            fullBreedName,
+                            images[pagerState.currentPage]
+                        )
                     )
                 }
-            }
-
-
+                CoroutineScope(Dispatchers.IO).launch {
+                    context.openFileOutput("likes.json", Context.MODE_PRIVATE).use {
+                        it.write(
+                            Gson().toJson(DogsAppContext.likes.toTypedArray()).toByteArray()
+                        )
+                    }
+                }
+            },
+            backgroundColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            modifier = Modifier
+                .align(Alignment.End)
+                .padding(10.dp, 10.dp, 10.dp, 20.dp)
+        ) {
+            Icon(
+                if (isLiked) Icons.Outlined.Favorite else Icons.Outlined.FavoriteBorder,
+                contentDescription = null
+            )
         }
+
+    }
 
 }

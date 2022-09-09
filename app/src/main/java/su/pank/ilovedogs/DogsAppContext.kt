@@ -11,5 +11,6 @@ class DogsAppContext {
     companion object{
         var isError = false
         lateinit var likes: MutableList<LikedDog>
+        lateinit var imageNowShowing: String
     }
 }

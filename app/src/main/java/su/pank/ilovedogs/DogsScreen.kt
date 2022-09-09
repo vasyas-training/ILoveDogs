@@ -85,7 +85,7 @@ fun Dogs(
         } else {
             items(breeds) { breed ->
                 var logoUrl by remember {
-                    mutableStateOf(MY_VK_LOGO)
+                    mutableStateOf("")
                 }
                 CoroutineScope(Dispatchers.IO).launch {
                     logoUrl =
