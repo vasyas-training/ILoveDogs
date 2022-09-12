@@ -2,45 +2,42 @@ package su.pank.ilovedogs
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.content.res.Resources.Theme
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.FloatingActionButton
 import androidx.compose.material.Icon
-import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImagePainter
 import coil.compose.rememberAsyncImagePainter
 import com.google.accompanist.pager.ExperimentalPagerApi
 import com.google.accompanist.pager.HorizontalPager
+import com.google.accompanist.pager.HorizontalPagerIndicator
 import com.google.accompanist.pager.rememberPagerState
 import com.google.accompanist.placeholder.PlaceholderHighlight
 import com.google.accompanist.placeholder.placeholder
 import com.google.accompanist.placeholder.shimmer
+import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import su.pank.ilovedogs.api.getDogImages
 import su.pank.ilovedogs.models.Dog
-import su.pank.ilovedogs.ui.theme.ILoveDogsTheme
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.ui.platform.LocalContext
-import com.google.accompanist.pager.HorizontalPagerIndicator
-import com.google.gson.Gson
 import su.pank.ilovedogs.models.LikedDog
 
 // Породы перестали быть классами, потому что они не доделаны)
-@OptIn(ExperimentalPagerApi::class)
+//
+// Данная функция позволяет получить список всех изображений по породе, то есть создать class Dog
 @SuppressLint(
     "MutableCollectionMutableState", "CoroutineCreationDuringComposition",
     "UnusedMaterialScaffoldPaddingParameter"
@@ -53,7 +50,11 @@ fun ImageViewerByBreed(breed: String, subBreed: String? = null) {
 
     val dog = Dog(breed, images, subBreed)
     CoroutineScope(Dispatchers.IO).launch {
-        images = getDogImages(dog)
+        try {
+            images = getDogImages(dog)
+        } catch (e: Exception) {
+            DogsAppContext.isError.value = true
+        }
     }
 
     if (images.isNotEmpty()) {
@@ -62,6 +63,7 @@ fun ImageViewerByBreed(breed: String, subBreed: String? = null) {
 
 }
 
+// Функция которая обеспечивает просмотр изображений по списку их ссылок
 @OptIn(ExperimentalPagerApi::class)
 @Composable
 fun ImageViewer(images: List<String>, fullBreedName: String) {
@@ -80,6 +82,8 @@ fun ImageViewer(images: List<String>, fullBreedName: String) {
             modifier = Modifier.weight(1F)
         ) { page ->
             val painter = rememberAsyncImagePainter(images[page])
+            if (painter.state is AsyncImagePainter.State.Error)
+                DogsAppContext.isError.value = true
             Image(
                 painter = painter,
                 contentDescription = null,
@@ -162,3 +166,4 @@ fun ImageViewer(images: List<String>, fullBreedName: String) {
     }
 
 }
+

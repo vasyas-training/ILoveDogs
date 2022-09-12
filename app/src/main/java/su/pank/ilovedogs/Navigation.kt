@@ -34,7 +34,8 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.util.*
 
-
+// Функция которая, скачивает приложение и передаёт нам ссылку на него
+// Необходима для того чтобы поделиться приложением
 fun getLocalBitmapUri(bmp: Bitmap, context: Context): Uri? {
     var bmpUri: Uri? = null
     try {
@@ -46,13 +47,14 @@ fun getLocalBitmapUri(bmp: Bitmap, context: Context): Uri? {
         bmp.compress(Bitmap.CompressFormat.PNG, 90, out)
         out.close()
         bmpUri =
-            FileProvider.getUriForFile(context, BuildConfig.APPLICATION_ID + ".provider", file);
+            FileProvider.getUriForFile(context, BuildConfig.APPLICATION_ID + ".provider", file)
     } catch (e: IOException) {
         e.printStackTrace()
     }
     return bmpUri
 }
 
+// Навигация, фактически главная функция, которая обеспечивает работту приложения
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,7 +70,7 @@ fun Navigation(navController: NavHostController = rememberNavController()) {
     Scaffold(topBar = {
         CenterAlignedTopAppBar(title = {
             Text(
-                text = screenNow.capitalize(Locale.ROOT)
+                text = screenNow.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() }
             )
         }, navigationIcon = {
             if (screenNow !in screens)
