@@ -3,6 +3,7 @@ package su.pank.ilovedogs
 import android.annotation.SuppressLint
 import android.content.Context
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.FloatingActionButton
 import androidx.compose.material.Icon
@@ -14,10 +15,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import coil.compose.AsyncImagePainter
 import coil.compose.rememberAsyncImagePainter
 import com.google.accompanist.pager.ExperimentalPagerApi
@@ -71,53 +73,71 @@ fun ImageViewer(images: List<String>, fullBreedName: String) {
     var isLiked by remember {
         mutableStateOf(false)
     }
+
+
+    HorizontalPager(
+        count = images.size,
+        state = pagerState,
+        modifier = Modifier.fillMaxSize()
+    ) { page ->
+        val painter = rememberAsyncImagePainter(images[page])
+        if (painter.state is AsyncImagePainter.State.Error)
+            DogsAppContext.isError.value = true
+        Image(
+            painter = painter,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .fillMaxSize()
+                .placeholder(
+                    visible = painter.state is AsyncImagePainter.State.Loading,
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    highlight = PlaceholderHighlight.shimmer(
+                        MaterialTheme.colorScheme.secondaryContainer
+                    )
+                )
+        )
+    }
+
+    LaunchedEffect(pagerState) {
+        snapshotFlow { pagerState.currentPage }.collect { page ->
+            DogsAppContext.imageNowShowing = images[page]
+            isLiked = LikedDog(
+                fullBreedName,
+                images[page]
+            ) in DogsAppContext.likes
+        }
+    }
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-        modifier = Modifier.fillMaxSize()
+        verticalArrangement = Arrangement.Bottom,
+        modifier = Modifier
+            .zIndex(3f)
+            .fillMaxSize()
     ) {
-        HorizontalPager(
-            count = images.size,
-            state = pagerState,
-            modifier = Modifier.weight(1F)
-        ) { page ->
-            val painter = rememberAsyncImagePainter(images[page])
-            if (painter.state is AsyncImagePainter.State.Error)
-                DogsAppContext.isError.value = true
-            Image(
-                painter = painter,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(500.dp)
-                    .placeholder(
-                        visible = painter.state is AsyncImagePainter.State.Loading,
-                        color = Color.Gray,
-                        highlight = PlaceholderHighlight.shimmer(
-                            Color.Gray
-                        )
-                    )
-            )
-        }
         if (images.size < 20)
             HorizontalPagerIndicator(
                 pagerState = pagerState,
-                inactiveColor = MaterialTheme.colorScheme.primaryContainer,
-                activeColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.padding(10.dp, 0.dp, 10.dp, 20.dp)
+                inactiveColor = MaterialTheme.colorScheme.secondaryContainer,
+                activeColor = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.background(
+                    MaterialTheme.colorScheme.secondaryContainer,
+                    MaterialTheme.shapes.medium
+                )
             )
         else
-            Text(text = "${pagerState.currentPage + 1}/${images.size}")
-        LaunchedEffect(pagerState) {
-            snapshotFlow { pagerState.currentPage }.collect { page ->
-                DogsAppContext.imageNowShowing = images[page]
-                isLiked = LikedDog(
-                    fullBreedName,
-                    images[page]
-                ) in DogsAppContext.likes
-            }
-        }
+            Text(
+                text = "${pagerState.currentPage + 1}/${images.size}",
+                color = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier
+                    .background(
+                        MaterialTheme.colorScheme.secondaryContainer,
+                        MaterialTheme.shapes.medium
+                    )
+                    .width(60.dp),
+                textAlign = TextAlign.Center
+            )
+
         val context = LocalContext.current
 
         FloatingActionButton(
@@ -162,8 +182,8 @@ fun ImageViewer(images: List<String>, fullBreedName: String) {
                 contentDescription = null
             )
         }
-
     }
-
 }
+
+
 
